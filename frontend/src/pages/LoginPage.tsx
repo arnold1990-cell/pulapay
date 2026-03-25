@@ -1,15 +1,74 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { FormEvent, useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
-import { login } from '../features/auth/authApi';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPass] = useState('');
-  const [error, setError] = useState('');
-  const { login: setAuth } = useAuth();
   const navigate = useNavigate();
-  return <div className="container"><h2>Login</h2>{error && <p>{error}</p>}<div className="grid"><Input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} /><Input type="password" placeholder="Password" value={password} onChange={e => setPass(e.target.value)} /><Button onClick={async () => { try { const res = await login(email, password); setAuth(res.token, res.user); navigate('/dashboard'); } catch { setError('Invalid credentials'); } }}>Login</Button><Link to="/register">Create account</Link></div></div>;
+  const { login, isAuthenticated } = useAuth();
+
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      await login(form);
+      navigate('/dashboard', { replace: true });
+    } catch {
+      setError('Login failed. Please verify your email and password.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="auth-page">
+      <Card className="auth-card">
+        <h1>PulaPay</h1>
+        <p>Securely access your wallet and payments dashboard.</p>
+
+        <form onSubmit={onSubmit} className="auth-form">
+          <Input
+            label="Email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            value={form.email}
+            onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
+            required
+          />
+          <Input
+            label="Password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            value={form.password}
+            onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
+            required
+          />
+
+          {error ? <p className="form-error">{error}</p> : null}
+
+          <Button type="submit" isLoading={isSubmitting}>
+            Sign In
+          </Button>
+        </form>
+
+        <p className="auth-switch">
+          New to PulaPay? <Link to="/register">Create an account</Link>
+        </p>
+      </Card>
+    </div>
+  );
 }

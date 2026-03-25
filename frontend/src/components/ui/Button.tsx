@@ -1,4 +1,28 @@
 import type { ButtonHTMLAttributes } from 'react';
-export default function Button(props: ButtonHTMLAttributes<HTMLButtonElement>) {
-  return <button {...props} style={{ background:'#0f62fe', color:'#fff', border:'none', borderRadius:8, padding:'0.6rem 1rem', cursor:'pointer' }} />;
+import { cn } from '../../lib/utils';
+
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
+
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant;
+  isLoading?: boolean;
+};
+
+export default function Button({
+  className,
+  children,
+  disabled,
+  variant = 'primary',
+  isLoading = false,
+  ...props
+}: ButtonProps) {
+  return (
+    <button
+      className={cn('btn', `btn-${variant}`, className)}
+      disabled={disabled || isLoading}
+      {...props}
+    >
+      {isLoading ? 'Please wait...' : children}
+    </button>
+  );
 }
