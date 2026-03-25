@@ -5,8 +5,8 @@ import com.pulapay.auth.dto.AuthResponse;
 import com.pulapay.auth.dto.LoginRequest;
 import com.pulapay.auth.dto.RegisterRequest;
 import com.pulapay.common.exception.BadRequestException;
-import com.pulapay.config.JwtService;
 import com.pulapay.common.util.WalletNumberGenerator;
+import com.pulapay.config.JwtService;
 import com.pulapay.user.entity.Role;
 import com.pulapay.user.entity.User;
 import com.pulapay.user.repository.UserRepository;
@@ -46,7 +46,9 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.email())) throw new BadRequestException("Email already registered");
+        if (userRepository.existsByEmail(request.email())) {
+            throw new BadRequestException("Email already registered");
+        }
 
         String phoneNumber = resolvePhoneNumber(request.phoneNumber());
 
@@ -98,7 +100,7 @@ public class AuthService {
     private AuthResponse toAuthResponse(User user) {
         return new AuthResponse(
                 jwtService.generateToken(user.getEmail()),
-                new AuthResponse.UserInfo(user.getFullName(), user.getEmail(), user.getPhoneNumber(), user.getRole())
+                new AuthResponse.UserInfo(user.getId(), user.getFullName(), user.getEmail(), user.getRole())
         );
     }
 }
