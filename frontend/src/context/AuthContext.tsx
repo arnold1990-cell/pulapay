@@ -18,9 +18,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const AUTH_USER_KEY = 'authUser';
 const ACCESS_TOKEN_KEY = 'accessToken';
 
+function readStoredUser(): AuthUser | null {
+  const storedUser = localStorage.getItem(AUTH_USER_KEY);
+
+  if (!storedUser) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(storedUser) as AuthUser;
+  } catch {
+    localStorage.removeItem(AUTH_USER_KEY);
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(localStorage.getItem(ACCESS_TOKEN_KEY));
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(readStoredUser());
   const [isLoading, setIsLoading] = useState(true);
 
   const logout = useCallback(() => {
@@ -33,7 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const bootstrapAuth = async () => {
       const storedToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-      const storedUser = localStorage.getItem(AUTH_USER_KEY);
 
       if (!storedToken) {
         setIsLoading(false);
@@ -42,16 +56,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setToken(storedToken);
 
-      if (storedUser) {
-        setUser(JSON.parse(storedUser) as AuthUser);
-      }
-
       try {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(currentUser));
       } catch {
-        logout();
+        const fallbackUser = readStoredUser();
+
+        if (fallbackUser) {
+          setUser(fallbackUser);
+        } else {
+          logout();
+        }
       } finally {
         setIsLoading(false);
       }
