@@ -1,1 +1,9 @@
-export type Txn = { reference: string; type: string; amount: number; status: string; createdAt: string };
+export type Transaction = {
+  id?: string;
+  reference: string;
+  type: 'DEBIT' | 'CREDIT' | string;
+  amount: number;
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | string;
+  description?: string;
+  createdAt: string;
+};

@@ -1,10 +1,17 @@
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
-import { useAuth } from '../../context/AuthContext';
 
 export default function AppLayout() {
-  const { token } = useAuth();
-  if (!token) return <Navigate to="/login" replace />;
-  return <div style={{ display:'flex' }}><Sidebar /><main className="container" style={{ flex:1 }}><Topbar /><Outlet /></main></div>;
+  return (
+    <div className="app-shell">
+      <Sidebar />
+      <div className="app-main">
+        <Topbar />
+        <main className="page-content">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
 }

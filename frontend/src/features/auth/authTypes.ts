@@ -1,9 +1,32 @@
+export type UserRole = 'USER' | 'ADMIN';
+
+export type AuthUser = {
+  id?: string;
+  fullName: string;
+  email: string;
+  role: UserRole;
+  createdAt?: string;
+};
+
+export type User = AuthUser;
+
+export type LoginRequest = {
+  email: string;
+  password: string;
+};
+
+export type RegisterRequest = {
+  fullName: string;
+  email: string;
+  password: string;
+};
+
 export type AuthResponse = {
   token: string;
-  user: {
-    name: string;
-    email: string;
-    phoneNumber: string;
-    role: 'USER' | 'ADMIN';
-  };
+  user: AuthUser;
+};
+
+export type ApiEnvelope<T> = {
+  data: T;
+  message?: string;
 };

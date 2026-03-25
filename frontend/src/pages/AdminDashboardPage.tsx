@@ -1,14 +1,43 @@
-import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { Navigate } from 'react-router-dom';
-import api from '../lib/axios';
-import Input from '../components/ui/Input';
-import Button from '../components/ui/Button';
+import { useEffect, useState } from 'react';
+import Card from '../components/ui/Card';
+import { listPayments } from '../features/payment/paymentApi';
+import { listTransactions } from '../features/transaction/transactionApi';
 
 export default function AdminDashboardPage() {
-  const { user } = useAuth();
-  const [walletNumber, setWallet] = useState('');
-  const [amount, setAmount] = useState('');
-  if (user?.role !== 'ADMIN') return <Navigate to="/dashboard" replace />;
-  return <div className="grid"><h2>Admin Dashboard</h2><Input placeholder="Wallet number" value={walletNumber} onChange={e=>setWallet(e.target.value)} /><Input placeholder="Amount" value={amount} onChange={e=>setAmount(e.target.value)} /><Button onClick={async()=>{ await api.post('/api/v1/admin/fund-wallet', { walletNumber, amount:Number(amount) }); }}>Fund Wallet</Button></div>;
+  const [stats, setStats] = useState({ transactions: 0, payments: 0, pendingTransactions: 0 });
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const [transactionList, paymentList] = await Promise.all([listTransactions(), listPayments()]);
+
+        setStats({
+          transactions: transactionList.length,
+          payments: paymentList.length,
+          pendingTransactions: transactionList.filter((transaction) => transaction.status === 'PENDING').length
+        });
+      } catch {
+        setStats({ transactions: 0, payments: 0, pendingTransactions: 0 });
+      }
+    };
+
+    void loadStats();
+  }, []);
+
+  return (
+    <div className="stats-grid">
+      <Card>
+        <p className="muted">Total Transactions</p>
+        <h3>{stats.transactions}</h3>
+      </Card>
+      <Card>
+        <p className="muted">Total Payments</p>
+        <h3>{stats.payments}</h3>
+      </Card>
+      <Card>
+        <p className="muted">Pending Transactions</p>
+        <h3>{stats.pendingTransactions}</h3>
+      </Card>
+    </div>
+  );
 }

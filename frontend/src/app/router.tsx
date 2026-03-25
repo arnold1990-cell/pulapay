@@ -1,22 +1,70 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
-import LoginPage from '../pages/LoginPage';
-import RegisterPage from '../pages/RegisterPage';
-import HomePage from '../pages/HomePage';
+import { useAuth } from '../context/AuthContext';
+import AdminDashboardPage from '../pages/AdminDashboardPage';
 import DashboardPage from '../pages/DashboardPage';
-import WalletPage from '../pages/WalletPage';
-import TransferPage from '../pages/TransferPage';
-import TransactionsPage from '../pages/TransactionsPage';
+import LoginPage from '../pages/LoginPage';
 import PaymentsPage from '../pages/PaymentsPage';
 import ProfilePage from '../pages/ProfilePage';
-import AdminDashboardPage from '../pages/AdminDashboardPage';
+import RegisterPage from '../pages/RegisterPage';
+import TransactionsPage from '../pages/TransactionsPage';
+import TransferPage from '../pages/TransferPage';
+import WalletPage from '../pages/WalletPage';
+
+function FullPageLoader() {
+  return <div className="page-loader">Loading your account...</div>;
+}
+
+function PublicOnlyRoute() {
+  const { isAuthenticated, authReady } = useAuth();
+
+  if (!authReady) {
+    return <FullPageLoader />;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Outlet />;
+}
+
+function ProtectedRoute() {
+  const { isAuthenticated, authReady } = useAuth();
+
+  if (!authReady) {
+    return <FullPageLoader />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <AppLayout />;
+}
+
+function AdminRoute() {
+  const { user } = useAuth();
+
+  if (user?.role !== 'ADMIN') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <AdminDashboardPage />;
+}
 
 export const router = createBrowserRouter([
-  { path: '/', element: <HomePage /> },
-  { path: '/login', element: <LoginPage /> },
-  { path: '/register', element: <RegisterPage /> },
   {
-    path: '/app', element: <AppLayout />, children: [
+    element: <PublicOnlyRoute />,
+    children: [
+      { path: '/login', element: <LoginPage /> },
+      { path: '/register', element: <RegisterPage /> }
+    ]
+  },
+  {
+    path: '/',
+    element: <ProtectedRoute />,
+    children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'wallet', element: <WalletPage /> },
@@ -24,14 +72,8 @@ export const router = createBrowserRouter([
       { path: 'transactions', element: <TransactionsPage /> },
       { path: 'payments', element: <PaymentsPage /> },
       { path: 'profile', element: <ProfilePage /> },
-      { path: 'admin', element: <AdminDashboardPage /> }
+      { path: 'admin', element: <AdminRoute /> }
     ]
   },
-  { path: '/dashboard', element: <Navigate to="/app/dashboard" replace /> },
-  { path: '/wallet', element: <Navigate to="/app/wallet" replace /> },
-  { path: '/transfer', element: <Navigate to="/app/transfer" replace /> },
-  { path: '/transactions', element: <Navigate to="/app/transactions" replace /> },
-  { path: '/payments', element: <Navigate to="/app/payments" replace /> },
-  { path: '/profile', element: <Navigate to="/app/profile" replace /> },
-  { path: '/admin', element: <Navigate to="/app/admin" replace /> }
+  { path: '*', element: <Navigate to="/dashboard" replace /> }
 ]);

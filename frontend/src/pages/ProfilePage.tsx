@@ -1,10 +1,27 @@
-import { useEffect, useState } from 'react';
-import api from '../lib/axios';
-import Input from '../components/ui/Input';
-import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState({ fullName:'', email:'', phoneNumber:'' });
-  useEffect(() => { api.get('/api/v1/users/me').then(r => setProfile(r.data.data)); }, []);
-  return <div className="grid"><h2>Profile</h2><Input value={profile.fullName} onChange={e=>setProfile({ ...profile, fullName:e.target.value })} /><Input value={profile.email} onChange={e=>setProfile({ ...profile, email:e.target.value })} /><Input value={profile.phoneNumber} disabled /><Button onClick={async()=>{ await api.put('/api/v1/users/me', { fullName: profile.fullName, email: profile.email }); }}>Save</Button></div>;
+  const { user } = useAuth();
+
+  return (
+    <Card>
+      <h3>Profile</h3>
+      <div className="stack-sm">
+        <p>
+          <strong>Name:</strong> {user?.fullName ?? 'N/A'}
+        </p>
+        <p>
+          <strong>Email:</strong> {user?.email ?? 'N/A'}
+        </p>
+        <p>
+          <strong>Role:</strong> {user?.role ?? 'N/A'}
+        </p>
+        <p>
+          <strong>Created At:</strong>{' '}
+          {user?.createdAt ? new Date(user.createdAt).toLocaleString() : 'Not provided by backend'}
+        </p>
+      </div>
+    </Card>
+  );
 }

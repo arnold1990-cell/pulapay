@@ -1,4 +1,7 @@
 import api from '../../lib/axios';
-import type { Txn } from './transactionTypes';
+import type { Transaction } from './transactionTypes';
 
-export async function listTransactions(): Promise<Txn[]> { const { data } = await api.get('/api/v1/transactions'); return data.data; }
+export async function listTransactions(): Promise<Transaction[]> {
+  const { data } = await api.get<{ data: Transaction[] } | Transaction[]>('/api/v1/transactions');
+  return 'data' in data ? data.data : data;
+}

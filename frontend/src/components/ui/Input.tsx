@@ -1,4 +1,23 @@
 import type { InputHTMLAttributes } from 'react';
-export default function Input(props: InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} style={{ width:'100%', padding:'0.6rem', borderRadius:8, border:'1px solid #d9e2ec' }} />;
+import { cn } from '../../lib/utils';
+
+type InputProps = InputHTMLAttributes<HTMLInputElement> & {
+  label?: string;
+  error?: string;
+};
+
+export default function Input({ className, label, error, id, ...props }: InputProps) {
+  const inputId = id ?? props.name;
+
+  return (
+    <div className="form-group">
+      {label ? (
+        <label htmlFor={inputId} className="form-label">
+          {label}
+        </label>
+      ) : null}
+      <input id={inputId} className={cn('input', error && 'input-error', className)} {...props} />
+      {error ? <p className="form-error">{error}</p> : null}
+    </div>
+  );
 }

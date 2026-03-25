@@ -1,3 +1,45 @@
-export default function Table({ headers, rows }: { headers: string[]; rows: React.ReactNode[][] }) {
-  return <table style={{ width:'100%', borderCollapse:'collapse' }}><thead><tr>{headers.map(h => <th key={h} style={{ textAlign:'left', borderBottom:'1px solid #eee', padding:'0.5rem' }}>{h}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={i}>{r.map((c,j)=><td key={j} style={{ padding:'0.5rem', borderBottom:'1px solid #f0f0f0' }}>{c}</td>)}</tr>)}</tbody></table>;
+import type { ReactNode } from 'react';
+
+type Column<T> = {
+  header: string;
+  cell: (row: T) => ReactNode;
+};
+
+type TableProps<T> = {
+  columns: Array<Column<T>>;
+  data: T[];
+  emptyMessage?: string;
+};
+
+export default function Table<T>({ columns, data, emptyMessage = 'No records found.' }: TableProps<T>) {
+  return (
+    <div className="table-wrapper">
+      <table className="table">
+        <thead>
+          <tr>
+            {columns.map((column) => (
+              <th key={column.header}>{column.header}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className="table-empty">
+                {emptyMessage}
+              </td>
+            </tr>
+          ) : (
+            data.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {columns.map((column) => (
+                  <td key={column.header}>{column.cell(row)}</td>
+                ))}
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
 }
