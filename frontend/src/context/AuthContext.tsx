@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 
-type AuthState = { fullName: string; phoneNumber: string; role: 'USER' | 'ADMIN' } | null;
+type AuthState = { name: string; email: string; phoneNumber: string; role: 'USER' | 'ADMIN' } | null;
 type AuthContextType = { user: AuthState; token: string | null; login: (token: string, user: NonNullable<AuthState>) => void; logout: () => void };
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

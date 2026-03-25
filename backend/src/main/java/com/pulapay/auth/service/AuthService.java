@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class AuthService {
@@ -45,12 +46,13 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByPhoneNumber(request.phoneNumber())) throw new BadRequestException("Phone number already registered");
         if (userRepository.existsByEmail(request.email())) throw new BadRequestException("Email already registered");
 
+        String phoneNumber = resolvePhoneNumber(request.phoneNumber());
+
         User user = new User();
-        user.setFullName(request.fullName());
-        user.setPhoneNumber(request.phoneNumber());
+        user.setFullName(request.name());
+        user.setPhoneNumber(phoneNumber);
         user.setEmail(request.email());
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setRole(Role.USER);
@@ -65,14 +67,38 @@ public class AuthService {
         wallet.setStatus(WalletStatus.ACTIVE);
         walletRepository.save(wallet);
 
-        auditLogService.log("REGISTRATION", user.getPhoneNumber(), user.getRole(), String.valueOf(user.getId()), "User registered");
-        return new AuthResponse(jwtService.generateToken(user), user.getPhoneNumber(), user.getFullName(), user.getRole());
+        auditLogService.log("REGISTRATION", user.getEmail(), user.getRole(), String.valueOf(user.getId()), "User registered");
+        return toAuthResponse(user);
     }
 
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.phoneNumber(), request.password()));
-        User user = userRepository.findByPhoneNumber(request.phoneNumber()).orElseThrow(() -> new BadRequestException("Invalid credentials"));
-        auditLogService.log("LOGIN", user.getPhoneNumber(), user.getRole(), String.valueOf(user.getId()), "User login successful");
-        return new AuthResponse(jwtService.generateToken(user), user.getPhoneNumber(), user.getFullName(), user.getRole());
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.email(), request.password()));
+        User user = userRepository.findByEmail(request.email()).orElseThrow(() -> new BadRequestException("Invalid credentials"));
+        auditLogService.log("LOGIN", user.getEmail(), user.getRole(), String.valueOf(user.getId()), "User login successful");
+        return toAuthResponse(user);
+    }
+
+    private String resolvePhoneNumber(String requestedPhoneNumber) {
+        if (requestedPhoneNumber != null && !requestedPhoneNumber.isBlank()) {
+            if (userRepository.existsByPhoneNumber(requestedPhoneNumber)) {
+                throw new BadRequestException("Phone number already registered");
+            }
+            return requestedPhoneNumber;
+        }
+
+        String generatedPhoneNumber;
+        do {
+            generatedPhoneNumber = "SYS" + (System.currentTimeMillis() % 1_000_000_0000L)
+                    + ThreadLocalRandom.current().nextInt(10, 99);
+            generatedPhoneNumber = generatedPhoneNumber.substring(0, Math.min(generatedPhoneNumber.length(), 20));
+        } while (userRepository.existsByPhoneNumber(generatedPhoneNumber));
+        return generatedPhoneNumber;
+    }
+
+    private AuthResponse toAuthResponse(User user) {
+        return new AuthResponse(
+                jwtService.generateToken(user.getEmail()),
+                new AuthResponse.UserInfo(user.getFullName(), user.getEmail(), user.getPhoneNumber(), user.getRole())
+        );
     }
 }

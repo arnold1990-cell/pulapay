@@ -1,1 +1,9 @@
-export type AuthResponse = { accessToken: string; phoneNumber: string; fullName: string; role: 'USER' | 'ADMIN' };
+export type AuthResponse = {
+  token: string;
+  user: {
+    name: string;
+    email: string;
+    phoneNumber: string;
+    role: 'USER' | 'ADMIN';
+  };
+};

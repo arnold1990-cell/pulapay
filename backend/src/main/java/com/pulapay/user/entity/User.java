@@ -51,7 +51,7 @@ public class User implements UserDetails {
     public Instant getUpdatedAt() { return updatedAt; }
 
     @Override public Collection<? extends GrantedAuthority> getAuthorities() { return List.of(new SimpleGrantedAuthority("ROLE_" + role.name())); }
-    @Override public String getUsername() { return phoneNumber; }
+    @Override public String getUsername() { return email; }
     @Override public String getPassword() { return password; }
     @Override public boolean isAccountNonExpired() { return active; }
     @Override public boolean isAccountNonLocked() { return active; }
