@@ -4,7 +4,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -19,9 +18,9 @@ public class JwtService {
     @Value("${app.jwt.expiration-ms}")
     private long expirationMs;
 
-    public String generateToken(UserDetails user) {
+    public String generateToken(String email) {
         return Jwts.builder()
-                .subject(user.getUsername())
+                .subject(email)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(getKey())
@@ -32,8 +31,8 @@ public class JwtService {
     public <T> T extractClaim(String token, Function<Claims, T> resolver) {
         return resolver.apply(Jwts.parser().verifyWith(getKey()).build().parseSignedClaims(token).getPayload());
     }
-    public boolean isValid(String token, UserDetails user) {
-        return extractUsername(token).equals(user.getUsername()) && extractClaim(token, Claims::getExpiration).after(new Date());
+    public boolean validateToken(String token) {
+        return extractClaim(token, Claims::getExpiration).after(new Date());
     }
 
     private SecretKey getKey() {

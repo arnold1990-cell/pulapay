@@ -12,5 +12,5 @@ export default function DashboardPage() {
   const [txns, setTxns] = useState<Txn[]>([]);
   const { user } = useAuth();
   useEffect(() => { getWallet().then(w => { setBalance(w.balance); setWallet(w.walletNumber); }); listTransactions().then(setTxns); }, []);
-  return <div className="grid"><Card><h3>{user?.fullName}</h3><p>Wallet {walletNumber}</p><h2>{currency(balance)}</h2></Card><Card><h4>Recent Transactions</h4>{txns.slice(0,5).map(t => <p key={t.reference}>{t.reference} - {t.status}</p>)}</Card></div>;
+  return <div className="grid"><Card><h3>{user?.name}</h3><p>Wallet {walletNumber}</p><h2>{currency(balance)}</h2></Card><Card><h4>Recent Transactions</h4>{txns.slice(0,5).map(t => <p key={t.reference}>{t.reference} - {t.status}</p>)}</Card></div>;
 }

@@ -34,6 +34,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(provider)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
@@ -42,7 +43,9 @@ public class SecurityConfig {
 
     @Bean
     UserDetailsService userDetailsService(UserRepository repo) {
-        return username -> repo.findByPhoneNumber(username).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return username -> repo.findByEmail(username)
+                .or(() -> repo.findByPhoneNumber(username))
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
     @Bean
