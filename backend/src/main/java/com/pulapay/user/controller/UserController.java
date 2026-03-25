@@ -10,18 +10,18 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping({"/api/users", "/api/v1/users"})
 public class UserController {
     private final UserService userService;
 
     public UserController(UserService userService) { this.userService = userService; }
 
-    @GetMapping("/me")
-    public ApiResponse<UserResponse> me(@AuthenticationPrincipal User user) {
+    @GetMapping({"/profile", "/me"})
+    public ApiResponse<UserResponse> profile(@AuthenticationPrincipal User user) {
         return ApiResponse.ok("User profile", userService.getMe(user));
     }
 
-    @PutMapping("/me")
+    @PutMapping({"/profile", "/me"})
     public ApiResponse<UserResponse> update(@AuthenticationPrincipal User user, @Valid @RequestBody UpdateProfileRequest request) {
         return ApiResponse.ok("Profile updated", userService.updateProfile(user, request));
     }

@@ -24,7 +24,7 @@ public class UserService {
         userRepository.findByEmail(request.email()).ifPresent(existing -> {
             if (!existing.getId().equals(user.getId())) throw new BadRequestException("Email already in use");
         });
-        user.setFullName(request.fullName());
+        user.setFullName(request.name());
         user.setEmail(request.email());
         User saved = userRepository.save(user);
         auditLogService.log("PROFILE_UPDATE", saved.getPhoneNumber(), saved.getRole(), saved.getId().toString(), "User profile updated");
