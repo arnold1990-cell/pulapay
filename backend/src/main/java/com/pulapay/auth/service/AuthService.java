@@ -14,6 +14,8 @@ import com.pulapay.user.repository.UserRepository;
 import com.pulapay.wallet.entity.Wallet;
 import com.pulapay.wallet.entity.WalletStatus;
 import com.pulapay.wallet.repository.WalletRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,6 +29,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class AuthService {
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final PasswordEncoder passwordEncoder;
@@ -50,7 +53,9 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         String normalizedEmail = normalizeEmail(request.email());
+        log.debug("Register attempt for email={}", normalizedEmail);
         if (userRepository.existsByEmail(normalizedEmail)) {
+            log.debug("Registration rejected: duplicate email={}", normalizedEmail);
             throw new BadRequestException("Email already registered");
         }
 
@@ -64,6 +69,7 @@ public class AuthService {
         user.setRole(Role.USER);
         user.setActive(true);
         user = userRepository.save(user);
+        log.debug("Registration successful for email={}, userId={}", user.getEmail(), user.getId());
 
         Wallet wallet = new Wallet();
         wallet.setUser(user);
@@ -79,14 +85,18 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         String normalizedEmail = normalizeEmail(request.email());
+        boolean userExists = userRepository.existsByEmail(normalizedEmail);
+        log.debug("Login attempt for email={}, userFound={}", normalizedEmail, userExists);
         try {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(normalizedEmail, request.password()));
         } catch (BadCredentialsException ex) {
+            log.debug("Login rejected for email={} due to invalid credentials", normalizedEmail);
             throw new UnauthorizedException("Invalid email or password");
         }
 
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
+        log.debug("Login successful for email={}, userId={}", user.getEmail(), user.getId());
         auditLogService.log("LOGIN", user.getEmail(), user.getRole(), String.valueOf(user.getId()), "User login successful");
         return toAuthResponse(user);
     }

@@ -9,6 +9,10 @@ import { useAuth } from '../context/AuthContext';
 
 function resolveErrorMessage(error: unknown): string {
   const axiosError = error as AxiosError<ApiError>;
+  const errorFields = axiosError.response?.data?.errors;
+  if (errorFields && Object.keys(errorFields).length > 0) {
+    return Object.values(errorFields).join(', ');
+  }
   return axiosError.response?.data?.message ?? axiosError.message ?? 'Login failed. Please try again.';
 }
 
@@ -34,7 +38,7 @@ export default function LoginPage() {
       navigate('/dashboard', { replace: true });
     } catch (submitError) {
       if (import.meta.env.DEV) {
-        console.error('Login request failed', submitError);
+        console.error('Login request failed', { error: submitError });
       }
       setError(resolveErrorMessage(submitError));
     } finally {

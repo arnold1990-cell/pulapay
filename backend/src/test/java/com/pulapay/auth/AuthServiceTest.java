@@ -4,6 +4,8 @@ import com.pulapay.audit.service.AuditLogService;
 import com.pulapay.auth.dto.AuthResponse;
 import com.pulapay.auth.dto.LoginRequest;
 import com.pulapay.auth.dto.RegisterRequest;
+import com.pulapay.common.exception.BadRequestException;
+import com.pulapay.common.exception.UnauthorizedException;
 import com.pulapay.auth.service.AuthService;
 import com.pulapay.common.util.WalletNumberGenerator;
 import com.pulapay.config.JwtService;
@@ -19,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -79,5 +82,43 @@ class AuthServiceTest {
                         && "password123".equals(authentication.getCredentials())));
         assertEquals("token-456", response.token());
         assertEquals("jane@example.com", response.user().email());
+    }
+
+    @Test
+    void registerRejectsDuplicateEmail() {
+        UserRepository userRepository = mock(UserRepository.class);
+        WalletRepository walletRepository = mock(WalletRepository.class);
+        PasswordEncoder encoder = mock(PasswordEncoder.class);
+        AuthenticationManager manager = mock(AuthenticationManager.class);
+        JwtService jwt = mock(JwtService.class);
+        WalletNumberGenerator walletNumberGenerator = mock(WalletNumberGenerator.class);
+        AuditLogService audit = mock(AuditLogService.class);
+
+        when(userRepository.existsByEmail("jane@example.com")).thenReturn(true);
+
+        AuthService service = new AuthService(userRepository, walletRepository, encoder, manager, jwt, walletNumberGenerator, audit);
+
+        assertThrows(BadRequestException.class, () ->
+                service.register(new RegisterRequest("Jane Doe", "jane@example.com", null, "password123")));
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void loginRejectsInvalidCredentials() {
+        UserRepository userRepository = mock(UserRepository.class);
+        WalletRepository walletRepository = mock(WalletRepository.class);
+        PasswordEncoder encoder = mock(PasswordEncoder.class);
+        AuthenticationManager manager = mock(AuthenticationManager.class);
+        JwtService jwt = mock(JwtService.class);
+        WalletNumberGenerator walletNumberGenerator = mock(WalletNumberGenerator.class);
+        AuditLogService audit = mock(AuditLogService.class);
+
+        doThrow(new org.springframework.security.authentication.BadCredentialsException("bad creds"))
+                .when(manager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+
+        AuthService service = new AuthService(userRepository, walletRepository, encoder, manager, jwt, walletNumberGenerator, audit);
+
+        assertThrows(UnauthorizedException.class, () ->
+                service.login(new LoginRequest("jane@example.com", "wrongpassword")));
     }
 }
