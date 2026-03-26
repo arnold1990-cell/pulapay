@@ -22,3 +22,6 @@ app:
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
   cors:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
+  seed:
+    local-admin:
+      enabled: ${LOCAL_ADMIN_SEED_ENABLED:false}
