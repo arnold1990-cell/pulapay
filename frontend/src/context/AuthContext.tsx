@@ -61,13 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser);
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(currentUser));
       } catch {
-        const fallbackUser = readStoredUser();
-
-        if (fallbackUser) {
-          setUser(fallbackUser);
-        } else {
-          logout();
-        }
+        logout();
       } finally {
         setIsLoading(false);
       }

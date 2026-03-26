@@ -9,7 +9,7 @@ export default function ProfilePage() {
       <h3>Profile</h3>
       <div className="stack-sm">
         <p>
-          <strong>Name:</strong> {user?.fullName ?? 'N/A'}
+          <strong>Name:</strong> {user?.name ?? 'N/A'}
         </p>
         <p>
           <strong>Email:</strong> {user?.email ?? 'N/A'}

@@ -5,6 +5,7 @@ import com.pulapay.auth.dto.AuthResponse;
 import com.pulapay.auth.dto.LoginRequest;
 import com.pulapay.auth.dto.RegisterRequest;
 import com.pulapay.common.exception.BadRequestException;
+import com.pulapay.common.exception.UnauthorizedException;
 import com.pulapay.common.util.WalletNumberGenerator;
 import com.pulapay.config.JwtService;
 import com.pulapay.user.entity.Role;
@@ -14,12 +15,14 @@ import com.pulapay.wallet.entity.Wallet;
 import com.pulapay.wallet.entity.WalletStatus;
 import com.pulapay.wallet.repository.WalletRepository;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
@@ -46,7 +49,8 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
+        String normalizedEmail = normalizeEmail(request.email());
+        if (userRepository.existsByEmail(normalizedEmail)) {
             throw new BadRequestException("Email already registered");
         }
 
@@ -55,7 +59,7 @@ public class AuthService {
         User user = new User();
         user.setFullName(request.name());
         user.setPhoneNumber(phoneNumber);
-        user.setEmail(request.email());
+        user.setEmail(normalizedEmail);
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setRole(Role.USER);
         user.setActive(true);
@@ -74,10 +78,21 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.email(), request.password()));
-        User user = userRepository.findByEmail(request.email()).orElseThrow(() -> new BadRequestException("Invalid credentials"));
+        String normalizedEmail = normalizeEmail(request.email());
+        try {
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(normalizedEmail, request.password()));
+        } catch (BadCredentialsException ex) {
+            throw new UnauthorizedException("Invalid email or password");
+        }
+
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
         auditLogService.log("LOGIN", user.getEmail(), user.getRole(), String.valueOf(user.getId()), "User login successful");
         return toAuthResponse(user);
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
     private String resolvePhoneNumber(String requestedPhoneNumber) {

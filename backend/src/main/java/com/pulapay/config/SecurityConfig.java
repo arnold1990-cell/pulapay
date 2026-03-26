@@ -3,6 +3,7 @@ package com.pulapay.config;
 import com.pulapay.user.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -16,6 +17,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import java.util.Locale;
 
 @Configuration
 @EnableMethodSecurity
@@ -35,12 +38,8 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(provider)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/auth/login",
-                                "/api/auth/register",
-                                "/api/v1/auth/login",
-                                "/api/v1/auth/register"
-                        ).permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/admin/**", "/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/**", "/api/v1/**").authenticated()
                         .anyRequest().permitAll())
@@ -50,8 +49,7 @@ public class SecurityConfig {
 
     @Bean
     UserDetailsService userDetailsService(UserRepository repo) {
-        return username -> repo.findByEmail(username)
-                .or(() -> repo.findByPhoneNumber(username))
+        return username -> repo.findByEmail(username.toLowerCase(Locale.ROOT))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 

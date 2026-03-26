@@ -25,7 +25,7 @@ export default function Topbar() {
 
       <div className="topbar-user">
         <div>
-          <strong>{user?.fullName ?? 'User'}</strong>
+          <strong>{user?.name ?? 'User'}</strong>
           <span>{user?.email ?? ''}</span>
         </div>
         <Button variant="ghost" onClick={logout}>
