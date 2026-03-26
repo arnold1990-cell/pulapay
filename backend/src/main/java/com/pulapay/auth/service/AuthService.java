@@ -16,9 +16,6 @@ import com.pulapay.wallet.entity.WalletStatus;
 import com.pulapay.wallet.repository.WalletRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,18 +30,16 @@ public class AuthService {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final WalletNumberGenerator walletNumberGenerator;
     private final AuditLogService auditLogService;
 
     public AuthService(UserRepository userRepository, WalletRepository walletRepository, PasswordEncoder passwordEncoder,
-                       AuthenticationManager authenticationManager, JwtService jwtService,
-                       WalletNumberGenerator walletNumberGenerator, AuditLogService auditLogService) {
+                       JwtService jwtService, WalletNumberGenerator walletNumberGenerator,
+                       AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.walletRepository = walletRepository;
         this.passwordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.walletNumberGenerator = walletNumberGenerator;
         this.auditLogService = auditLogService;
@@ -80,25 +75,37 @@ public class AuthService {
         walletRepository.save(wallet);
 
         auditLogService.log("REGISTRATION", user.getEmail(), user.getRole(), String.valueOf(user.getId()), "User registered");
-        return toAuthResponse(user);
+        AuthResponse response = toAuthResponse(user);
+        log.debug("Register response for email={}, tokenPresent={}, role={}", normalizedEmail,
+                !response.token().isBlank(), response.user().role());
+        return response;
     }
 
     public AuthResponse login(LoginRequest request) {
         String normalizedEmail = normalizeEmail(request.email());
-        boolean userExists = userRepository.existsByEmail(normalizedEmail);
-        log.debug("Login attempt for email={}, userFound={}", normalizedEmail, userExists);
-        try {
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(normalizedEmail, request.password()));
-        } catch (BadCredentialsException ex) {
-            log.debug("Login rejected for email={} due to invalid credentials", normalizedEmail);
+        log.debug("Login attempt received for email={}", normalizedEmail);
+
+        User user = userRepository.findByEmail(normalizedEmail).orElse(null);
+        boolean userFound = user != null;
+        log.debug("Login lookup result for email={}: userFound={}", normalizedEmail, userFound);
+
+        if (!userFound) {
             throw new UnauthorizedException("Invalid email or password");
         }
 
-        User user = userRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
+        boolean passwordMatched = passwordEncoder.matches(request.password(), user.getPassword());
+        log.debug("Password comparison for email={}: matches={}", normalizedEmail, passwordMatched);
+
+        if (!passwordMatched) {
+            throw new UnauthorizedException("Invalid email or password");
+        }
+
         log.debug("Login successful for email={}, userId={}", user.getEmail(), user.getId());
         auditLogService.log("LOGIN", user.getEmail(), user.getRole(), String.valueOf(user.getId()), "User login successful");
-        return toAuthResponse(user);
+        AuthResponse response = toAuthResponse(user);
+        log.debug("Login response for email={}, tokenPresent={}, role={}", normalizedEmail,
+                !response.token().isBlank(), response.user().role());
+        return response;
     }
 
     private String normalizeEmail(String email) {

@@ -14,8 +14,6 @@ import com.pulapay.user.entity.User;
 import com.pulapay.user.repository.UserRepository;
 import com.pulapay.wallet.repository.WalletRepository;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
@@ -31,7 +29,6 @@ class AuthServiceTest {
         UserRepository userRepository = mock(UserRepository.class);
         WalletRepository walletRepository = mock(WalletRepository.class);
         PasswordEncoder encoder = mock(PasswordEncoder.class);
-        AuthenticationManager manager = mock(AuthenticationManager.class);
         JwtService jwt = mock(JwtService.class);
         WalletNumberGenerator walletNumberGenerator = mock(WalletNumberGenerator.class);
         AuditLogService audit = mock(AuditLogService.class);
@@ -43,7 +40,7 @@ class AuthServiceTest {
         when(jwt.generateToken("jane@example.com")).thenReturn("token-123");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        AuthService service = new AuthService(userRepository, walletRepository, encoder, manager, jwt, walletNumberGenerator, audit);
+        AuthService service = new AuthService(userRepository, walletRepository, encoder, jwt, walletNumberGenerator, audit);
 
         AuthResponse response = service.register(new RegisterRequest("Jane Doe", "jane@example.com", null, "password123"));
 
@@ -58,7 +55,6 @@ class AuthServiceTest {
         UserRepository userRepository = mock(UserRepository.class);
         WalletRepository walletRepository = mock(WalletRepository.class);
         PasswordEncoder encoder = mock(PasswordEncoder.class);
-        AuthenticationManager manager = mock(AuthenticationManager.class);
         JwtService jwt = mock(JwtService.class);
         WalletNumberGenerator walletNumberGenerator = mock(WalletNumberGenerator.class);
         AuditLogService audit = mock(AuditLogService.class);
@@ -69,17 +65,16 @@ class AuthServiceTest {
         user.setPhoneNumber("SYS123");
         user.setRole(Role.USER);
 
+        user.setPassword("hashed-password");
+
         when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.of(user));
+        when(encoder.matches("password123", "hashed-password")).thenReturn(true);
         when(jwt.generateToken("jane@example.com")).thenReturn("token-456");
 
-        AuthService service = new AuthService(userRepository, walletRepository, encoder, manager, jwt, walletNumberGenerator, audit);
+        AuthService service = new AuthService(userRepository, walletRepository, encoder, jwt, walletNumberGenerator, audit);
 
         AuthResponse response = service.login(new LoginRequest("jane@example.com", "password123"));
 
-        verify(manager).authenticate(argThat(authentication ->
-                authentication instanceof UsernamePasswordAuthenticationToken
-                        && "jane@example.com".equals(authentication.getPrincipal())
-                        && "password123".equals(authentication.getCredentials())));
         assertEquals("token-456", response.token());
         assertEquals("jane@example.com", response.user().email());
     }
@@ -89,14 +84,13 @@ class AuthServiceTest {
         UserRepository userRepository = mock(UserRepository.class);
         WalletRepository walletRepository = mock(WalletRepository.class);
         PasswordEncoder encoder = mock(PasswordEncoder.class);
-        AuthenticationManager manager = mock(AuthenticationManager.class);
         JwtService jwt = mock(JwtService.class);
         WalletNumberGenerator walletNumberGenerator = mock(WalletNumberGenerator.class);
         AuditLogService audit = mock(AuditLogService.class);
 
         when(userRepository.existsByEmail("jane@example.com")).thenReturn(true);
 
-        AuthService service = new AuthService(userRepository, walletRepository, encoder, manager, jwt, walletNumberGenerator, audit);
+        AuthService service = new AuthService(userRepository, walletRepository, encoder, jwt, walletNumberGenerator, audit);
 
         assertThrows(BadRequestException.class, () ->
                 service.register(new RegisterRequest("Jane Doe", "jane@example.com", null, "password123")));
@@ -108,15 +102,21 @@ class AuthServiceTest {
         UserRepository userRepository = mock(UserRepository.class);
         WalletRepository walletRepository = mock(WalletRepository.class);
         PasswordEncoder encoder = mock(PasswordEncoder.class);
-        AuthenticationManager manager = mock(AuthenticationManager.class);
         JwtService jwt = mock(JwtService.class);
         WalletNumberGenerator walletNumberGenerator = mock(WalletNumberGenerator.class);
         AuditLogService audit = mock(AuditLogService.class);
 
-        doThrow(new org.springframework.security.authentication.BadCredentialsException("bad creds"))
-                .when(manager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        AuthService service = new AuthService(userRepository, walletRepository, encoder, jwt, walletNumberGenerator, audit);
 
-        AuthService service = new AuthService(userRepository, walletRepository, encoder, manager, jwt, walletNumberGenerator, audit);
+        User user = new User();
+        user.setFullName("Jane Doe");
+        user.setEmail("jane@example.com");
+        user.setPhoneNumber("SYS123");
+        user.setRole(Role.USER);
+        user.setPassword("hashed-password");
+
+        when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.of(user));
+        when(encoder.matches("wrongpassword", "hashed-password")).thenReturn(false);
 
         assertThrows(UnauthorizedException.class, () ->
                 service.login(new LoginRequest("jane@example.com", "wrongpassword")));
