@@ -29,13 +29,19 @@ public class AuthController {
     @PostMapping("/register")
     public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         log.debug("POST /api/auth/register hit for email={}", request.email());
-        return ApiResponse.ok("Registration successful", authService.register(request));
+        AuthResponse authResponse = authService.register(request);
+        log.debug("POST /api/auth/register response ready for email={}, tokenPresent={}, role={}",
+                request.email(), !authResponse.token().isBlank(), authResponse.user().role());
+        return ApiResponse.ok("Registration successful", authResponse);
     }
 
     @PostMapping("/login")
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         log.debug("POST /api/auth/login hit for email={}", request.email());
-        return ApiResponse.ok("Login successful", authService.login(request));
+        AuthResponse authResponse = authService.login(request);
+        log.debug("POST /api/auth/login response ready for email={}, tokenPresent={}, role={}",
+                request.email(), !authResponse.token().isBlank(), authResponse.user().role());
+        return ApiResponse.ok("Login successful", authResponse);
     }
 
     @GetMapping("/me")
