@@ -20,7 +20,16 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (import.meta.env.DEV && response.config.url?.startsWith('/api/auth')) {
+      console.debug('Auth HTTP response', {
+        url: response.config.url,
+        status: response.status,
+        success: (response.data as { success?: boolean })?.success
+      });
+    }
+    return response;
+  },
   (error: AxiosError<ApiError>) => {
     const backendMessage = error.response?.data?.message;
     if (backendMessage) {

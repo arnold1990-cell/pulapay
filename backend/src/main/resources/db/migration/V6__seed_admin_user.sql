@@ -6,7 +6,7 @@ VALUES (
   'PulaPay Admin',
   '26770000000',
   'admin@pulapay.com',
-  '$2y$12$jgYWOGu0PhY3MDi9dkwM4uFI3m2ibTqwMBDup9tJZMZp87d4mTew2',
+  '$2b$12$4gHhBeaVIYBrjz1OPho4d.6..07qf4hEvcafSLuEeisgutKPxbxRO',
   'ADMIN',
   true,
   NOW(),

@@ -9,12 +9,15 @@ import com.pulapay.user.dto.UserResponse;
 import com.pulapay.user.entity.User;
 import com.pulapay.user.service.UserService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping({"/api/auth", "/api/v1/auth"})
 public class AuthController {
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     private final AuthService authService;
     private final UserService userService;
 
@@ -25,11 +28,13 @@ public class AuthController {
 
     @PostMapping("/register")
     public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        log.debug("POST /api/auth/register hit for email={}", request.email());
         return ApiResponse.ok("Registration successful", authService.register(request));
     }
 
     @PostMapping("/login")
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        log.debug("POST /api/auth/login hit for email={}", request.email());
         return ApiResponse.ok("Login successful", authService.login(request));
     }
 
