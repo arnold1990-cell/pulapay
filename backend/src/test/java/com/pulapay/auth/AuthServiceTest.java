@@ -121,4 +121,31 @@ class AuthServiceTest {
         assertThrows(UnauthorizedException.class, () ->
                 service.login(new LoginRequest("jane@example.com", "wrongpassword")));
     }
+
+    @Test
+    void loginRejectsInactiveUser() {
+        UserRepository userRepository = mock(UserRepository.class);
+        WalletRepository walletRepository = mock(WalletRepository.class);
+        PasswordEncoder encoder = mock(PasswordEncoder.class);
+        JwtService jwt = mock(JwtService.class);
+        WalletNumberGenerator walletNumberGenerator = mock(WalletNumberGenerator.class);
+        AuditLogService audit = mock(AuditLogService.class);
+
+        AuthService service = new AuthService(userRepository, walletRepository, encoder, jwt, walletNumberGenerator, audit);
+
+        User user = new User();
+        user.setFullName("Jane Doe");
+        user.setEmail("jane@example.com");
+        user.setPhoneNumber("SYS123");
+        user.setRole(Role.USER);
+        user.setActive(false);
+        user.setPassword("hashed-password");
+
+        when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.of(user));
+
+        assertThrows(UnauthorizedException.class, () ->
+                service.login(new LoginRequest("jane@example.com", "password123")));
+        verify(encoder, never()).matches(any(), any());
+    }
+
 }

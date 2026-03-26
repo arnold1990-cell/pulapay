@@ -93,6 +93,10 @@ public class AuthService {
             throw new UnauthorizedException("Invalid email or password");
         }
 
+        if (!user.isActive()) {
+            throw new UnauthorizedException("Invalid email or password");
+        }
+
         boolean passwordMatched = passwordEncoder.matches(request.password(), user.getPassword());
         log.debug("Password comparison for email={}: matches={}", normalizedEmail, passwordMatched);
 
