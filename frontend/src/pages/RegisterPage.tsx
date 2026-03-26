@@ -18,11 +18,15 @@ function resolveErrorMessage(error: unknown): string {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { register, isAuthenticated } = useAuth();
+  const { register, isAuthenticated, authReady } = useAuth();
 
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!authReady) {
+    return <div className="page-loader">Loading your account...</div>;
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;

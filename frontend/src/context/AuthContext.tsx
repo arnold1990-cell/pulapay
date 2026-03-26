@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { getCurrentUser, login as loginApi, register as registerApi } from '../features/auth/authApi';
-import type { AuthUser, LoginRequest, RegisterRequest } from '../features/auth/authTypes';
+import type { AuthPayload, AuthUser, LoginRequest, RegisterRequest } from '../features/auth/authTypes';
 
 type AuthContextType = {
   user: AuthUser | null;
@@ -48,6 +48,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const bootstrapAuth = async () => {
       const storedToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+      if (import.meta.env.DEV) {
+        console.log('AUTH BOOTSTRAP TOKEN PRESENT', Boolean(storedToken));
+      }
 
       if (!storedToken) {
         setIsLoading(false);
@@ -74,19 +77,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await loginApi(payload);
     localStorage.setItem(ACCESS_TOKEN_KEY, response.token);
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(response.user));
+    if (import.meta.env.DEV) {
+      console.log('AUTH TOKEN STORED', Boolean(localStorage.getItem(ACCESS_TOKEN_KEY)));
+    }
     setToken(response.token);
     setUser(response.user);
   }, []);
 
   const register = useCallback(async (payload: RegisterRequest) => {
-    await registerApi(payload);
+    const response: AuthPayload = await registerApi(payload);
+    if (import.meta.env.DEV) {
+      console.log('REGISTER TOKEN RECEIVED', Boolean(response.token));
+    }
   }, []);
 
   const value = useMemo<AuthContextType>(
     () => ({
       user,
       token,
-      isAuthenticated: Boolean(token),
+      isAuthenticated: Boolean(token && user),
       isLoading,
       authReady: !isLoading,
       login,

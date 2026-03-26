@@ -1,12 +1,12 @@
 import api from '../../lib/axios';
-import type { ApiEnvelope, AuthResponse, AuthUser, LoginRequest, RegisterRequest } from './authTypes';
+import type { ApiResponse, AuthPayload, AuthUser, LoginRequest, RegisterRequest } from './authTypes';
 
 type RawAuthUser = {
-  id?: number;
+  id?: number | string;
   name?: string;
   fullName?: string;
   email: string;
-  role: AuthUser['role'];
+  role?: AuthUser['role'];
 };
 
 type RawAuthResponse = {
@@ -14,25 +14,38 @@ type RawAuthResponse = {
   user: RawAuthUser;
 };
 
-const unwrap = <T>(payload: ApiEnvelope<T>): T => {
-  if (!payload.success) {
-    throw new Error(payload.message || 'Request failed');
+const unwrapApiResponse = <T>(payload: ApiResponse<T> | T): T => {
+  if (payload && typeof payload === 'object' && 'success' in payload && 'data' in payload) {
+    const envelope = payload as ApiResponse<T>;
+    if (!envelope.success) {
+      throw new Error(envelope.message || 'Request failed');
+    }
+    return envelope.data;
   }
-  return payload.data;
+
+  return payload as T;
 };
 
 function normalizeUser(user: RawAuthUser): AuthUser {
+  if (!user?.email) {
+    throw new Error('Authentication response missing user email');
+  }
+
   return {
-    id: user.id,
+    id: user.id ?? user.email,
     name: user.name ?? user.fullName ?? '',
     email: user.email,
-    role: user.role
+    role: user.role ?? 'USER'
   };
 }
 
-function normalizeAuthResponse(payload: RawAuthResponse): AuthResponse {
-  if (!payload.token) {
+function normalizeAuthResponse(payload: RawAuthResponse): AuthPayload {
+  if (!payload?.token) {
     throw new Error('Authentication response missing access token');
+  }
+
+  if (!payload?.user) {
+    throw new Error('Authentication response missing user');
   }
 
   return {
@@ -41,29 +54,31 @@ function normalizeAuthResponse(payload: RawAuthResponse): AuthResponse {
   };
 }
 
-export async function login(payload: LoginRequest): Promise<AuthResponse> {
+export async function login(payload: LoginRequest): Promise<AuthPayload> {
+  const { data } = await api.post<ApiResponse<RawAuthResponse>>('/api/auth/login', payload);
+  const authData = normalizeAuthResponse(unwrapApiResponse(data));
+
   if (import.meta.env.DEV) {
-    console.debug('Auth API login request', { url: '/api/auth/login', email: payload.email });
+    console.log('LOGIN RAW RESPONSE', data);
+    console.log('LOGIN PARSED AUTH DATA', authData);
   }
-  const { data } = await api.post<ApiEnvelope<RawAuthResponse>>('/api/auth/login', payload);
-  if (import.meta.env.DEV) {
-    console.debug('Auth API login response', { success: data.success, message: data.message });
-  }
-  return normalizeAuthResponse(unwrap(data));
+
+  return authData;
 }
 
-export async function register(payload: RegisterRequest): Promise<AuthResponse> {
+export async function register(payload: RegisterRequest): Promise<AuthPayload> {
+  const { data } = await api.post<ApiResponse<RawAuthResponse>>('/api/auth/register', payload);
+  const authData = normalizeAuthResponse(unwrapApiResponse(data));
+
   if (import.meta.env.DEV) {
-    console.debug('Auth API register request', { url: '/api/auth/register', email: payload.email });
+    console.log('REGISTER RAW RESPONSE', data);
+    console.log('REGISTER PARSED AUTH DATA', authData);
   }
-  const { data } = await api.post<ApiEnvelope<RawAuthResponse>>('/api/auth/register', payload);
-  if (import.meta.env.DEV) {
-    console.debug('Auth API register response', { success: data.success, message: data.message });
-  }
-  return normalizeAuthResponse(unwrap(data));
+
+  return authData;
 }
 
 export async function getCurrentUser(): Promise<AuthUser> {
-  const { data } = await api.get<ApiEnvelope<RawAuthUser>>('/api/auth/me');
-  return normalizeUser(unwrap(data));
+  const { data } = await api.get<ApiResponse<RawAuthUser>>('/api/auth/me');
+  return normalizeUser(unwrapApiResponse(data));
 }
