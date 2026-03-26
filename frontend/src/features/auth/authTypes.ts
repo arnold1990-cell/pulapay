@@ -6,14 +6,14 @@ export type LoginRequest = {
 };
 
 export type RegisterRequest = {
-  fullName: string;
+  name: string;
   email: string;
   password: string;
 };
 
 export type AuthUser = {
   id?: string;
-  fullName: string;
+  name: string;
   email: string;
   role: UserRole;
   createdAt?: string;
@@ -25,6 +25,14 @@ export type AuthResponse = {
 };
 
 export type ApiEnvelope<T> = {
+  success: boolean;
+  message: string;
   data: T;
-  message?: string;
+  timestamp?: string;
+};
+
+export type ApiError = {
+  success: false;
+  message: string;
+  errors?: Record<string, string>;
 };

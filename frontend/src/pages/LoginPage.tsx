@@ -1,9 +1,16 @@
+import { AxiosError } from 'axios';
 import { FormEvent, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import type { ApiError } from '../features/auth/authTypes';
 import { useAuth } from '../context/AuthContext';
+
+function resolveErrorMessage(error: unknown): string {
+  const axiosError = error as AxiosError<ApiError>;
+  return axiosError.response?.data?.message ?? axiosError.message ?? 'Login failed. Please try again.';
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -25,8 +32,11 @@ export default function LoginPage() {
     try {
       await login(form);
       navigate('/dashboard', { replace: true });
-    } catch {
-      setError('Login failed. Please verify your email and password.');
+    } catch (submitError) {
+      if (import.meta.env.DEV) {
+        console.error('Login request failed', submitError);
+      }
+      setError(resolveErrorMessage(submitError));
     } finally {
       setIsSubmitting(false);
     }

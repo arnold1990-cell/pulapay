@@ -1,4 +1,5 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
+import type { ApiError } from '../features/auth/authTypes';
 
 const api = axios.create({
   baseURL: 'http://localhost:8080',
@@ -20,12 +21,18 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  (error: AxiosError<ApiError>) => {
+    const backendMessage = error.response?.data?.message;
+    if (backendMessage) {
+      error.message = backendMessage;
+    }
+
     if (error.response?.status === 401) {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('authUser');
 
-      if (!window.location.pathname.startsWith('/login')) {
+      const isAuthEndpoint = error.config?.url?.includes('/api/auth/login') || error.config?.url?.includes('/api/auth/register');
+      if (!isAuthEndpoint && !window.location.pathname.startsWith('/login')) {
         window.location.href = '/login';
       }
     }

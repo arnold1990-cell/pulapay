@@ -1,15 +1,22 @@
+import { AxiosError } from 'axios';
 import { FormEvent, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import type { ApiError } from '../features/auth/authTypes';
 import { useAuth } from '../context/AuthContext';
+
+function resolveErrorMessage(error: unknown): string {
+  const axiosError = error as AxiosError<ApiError>;
+  return axiosError.response?.data?.message ?? axiosError.message ?? 'Registration failed. Please try again.';
+}
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { register, isAuthenticated } = useAuth();
 
-  const [form, setForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -29,10 +36,13 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      await register({ fullName: form.fullName, email: form.email, password: form.password });
+      await register({ name: form.name, email: form.email, password: form.password });
       navigate('/login', { replace: true });
-    } catch {
-      setError('Registration failed. Please try again.');
+    } catch (submitError) {
+      if (import.meta.env.DEV) {
+        console.error('Registration request failed', submitError);
+      }
+      setError(resolveErrorMessage(submitError));
     } finally {
       setIsSubmitting(false);
     }
@@ -47,9 +57,9 @@ export default function RegisterPage() {
         <form onSubmit={onSubmit} className="auth-form">
           <Input
             label="Full name"
-            name="fullName"
-            value={form.fullName}
-            onChange={(event) => setForm((prev) => ({ ...prev, fullName: event.target.value }))}
+            name="name"
+            value={form.name}
+            onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
             required
           />
           <Input
