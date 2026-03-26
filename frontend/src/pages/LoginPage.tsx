@@ -18,11 +18,15 @@ function resolveErrorMessage(error: unknown): string {
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, authReady } = useAuth();
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  if (!authReady) {
+    return <div className="page-loader">Loading your account...</div>;
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;

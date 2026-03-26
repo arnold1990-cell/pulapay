@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import type { ApiError } from '../features/auth/authTypes';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json'

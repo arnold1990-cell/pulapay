@@ -12,19 +12,19 @@ export type RegisterRequest = {
 };
 
 export type AuthUser = {
-  id?: number;
+  id: number | string;
   name: string;
   email: string;
-  role: UserRole;
+  role: UserRole | string;
   createdAt?: string;
 };
 
-export type AuthResponse = {
+export type AuthPayload = {
   token: string;
   user: AuthUser;
 };
 
-export type ApiEnvelope<T> = {
+export type ApiResponse<T> = {
   success: boolean;
   message: string;
   data: T;
@@ -34,5 +34,7 @@ export type ApiEnvelope<T> = {
 export type ApiError = {
   success: false;
   message: string;
+  path?: string;
+  timestamp?: string;
   errors?: Record<string, string>;
 };
